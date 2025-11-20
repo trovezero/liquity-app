@@ -249,24 +249,7 @@ export const FooterInfoRedemptionRisk = memo(function FooterInfoRedemptionRisk({
 }: {
   riskLevel: RiskLevel | null;
 }) {
-  const label = formatRedemptionRisk(riskLevel);
-  return (
-    <Field.FooterInfoWarnLevel
-      help={
-        <InfoTooltip
-          {...infoTooltipProps(content.generalInfotooltips.loanRedemptionRisk)}
-          heading={
-            <FooterInfoRiskLabel
-              label={label}
-              riskLevel={riskLevel}
-            />
-          }
-        />
-      }
-      label={label}
-      level={riskLevel}
-    />
-  );
+  return null;
 });
 
 export const FooterInfoLoanToValue = memo(

@@ -160,7 +160,7 @@ export const InterestRateField = memo(
 
     const redemptionRisk = debtInFront
       && getRedemptionRisk(debtInFront.debtInFront, debtInFront.totalDebt);
-    const redeemableTransition = useAppear(debtInFront !== undefined);
+    const redeemableTransition = useAppear(false);
 
     const handleDelegateSelect = (delegate: Delegate) => {
       setDelegatePicker(null);
@@ -323,38 +323,7 @@ export const InterestRateField = memo(
                 <InfoTooltip {...infoTooltipProps(content.generalInfotooltips.interestRateBoldPerYear)} />
               </div>
             ),
-            end: redeemableTransition((style, show) => (
-              show && (
-                <a.div
-                  title={`Redeemable before you: ${
-                    (mode === "manual" || delegate !== null)
-                      ? fmtnum(debtInFront?.debtInFront, "compact")
-                      : "−"
-                  } BOLD`}
-                  className={css({
-                    overflow: "hidden",
-                    whiteSpace: "nowrap",
-                    textOverflow: "ellipsis",
-                    userSelect: "none",
-                  })}
-                  style={style}
-                >
-                  <span>
-                    {breakpoint === "large" ? "Redeemable before you: " : "Red. before: "}
-                    <span
-                      className={css({
-                        fontVariantNumeric: "tabular-nums",
-                      })}
-                    >
-                      {(mode === "manual" || delegate !== null)
-                        ? fmtnum(debtInFront?.debtInFront, "compact")
-                        : "−"}
-                    </span>
-                    {breakpoint === "large" && <span>{" BOLD"}</span>}
-                  </span>
-                </a.div>
-              )
-            )),
+            end: null,
           }}
           {...fieldValue.inputFieldProps}
           value={
