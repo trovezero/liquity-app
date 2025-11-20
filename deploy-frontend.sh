@@ -3,7 +3,7 @@
 # Deploy the static frontend (frontend/app/out) to a dedicated branch.
 # Usage:
 #   ./deploy-frontend.sh            # production -> pushes to remote "origin", branch "deploy"
-#   ./deploy-frontend.sh --staging  # staging    -> pushes to remote "staging", branch "deploy-staging"
+#   ./deploy-frontend.sh --staging  # staging    -> pushes to remote "staging", branch "deploy"
 # Any additional arguments become the commit message for the deployment commit.
 # Ensure the target remote exists (e.g. git remote add staging <url>).
 
@@ -11,7 +11,7 @@ set -euo pipefail
 
 APP_DIR="frontend/app"
 BUILD_DIR="${APP_DIR}/out"
-WORK_BRANCH="deploy-build"
+REPO_ROOT="$(pwd)"
 BUILD_COMMAND="pnpm build"
 
 if [[ ! -d "${APP_DIR}" ]]; then
@@ -29,7 +29,6 @@ REMOTE="origin"
 TARGET_BRANCH="deploy"
 if [[ "${env_name}" == "staging" ]]; then
   REMOTE="staging"
-  TARGET_BRANCH="deploy-staging"
 fi
 
 if ! git remote get-url "${REMOTE}" >/dev/null 2>&1; then
@@ -42,10 +41,14 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
-CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-
-git branch -D "${WORK_BRANCH}" >/dev/null 2>&1 || true
-git checkout -b "${WORK_BRANCH}"
+CLEANUP_DIR=""
+cleanup() {
+  if [[ -n "${CLEANUP_DIR}" && -d "${CLEANUP_DIR}" ]]; then
+    git worktree remove --force "${CLEANUP_DIR}" >/dev/null 2>&1 || true
+    rm -rf "${CLEANUP_DIR}"
+  fi
+}
+trap cleanup EXIT
 
 rm -rf "${BUILD_DIR}"
 
@@ -54,18 +57,35 @@ rm -rf "${BUILD_DIR}"
   ${BUILD_COMMAND}
 )
 
-git add "${BUILD_DIR}" -f
+WORKTREE_DIR="$(mktemp -d -t deploy-worktree-XXXXXXXX)"
+CLEANUP_DIR="${WORKTREE_DIR}"
 
-COMMIT_MSG="Deploy frontend (${env_name}) $(date --iso-8601=seconds)"
-if [[ $# -gt 0 ]]; then
-  COMMIT_MSG="$*"
+# Prepare local branch from remote if it exists; otherwise create an orphan later.
+if git ls-remote --exit-code "${REMOTE}" "refs/heads/${TARGET_BRANCH}" >/dev/null 2>&1; then
+  git fetch "${REMOTE}" "${TARGET_BRANCH}:refs/heads/${TARGET_BRANCH}"
+  git worktree add --force "${WORKTREE_DIR}" "${TARGET_BRANCH}"
+else
+  git worktree add --detach "${WORKTREE_DIR}" >/dev/null 2>&1
+  (
+    cd "${WORKTREE_DIR}"
+    git checkout --orphan "${TARGET_BRANCH}"
+  )
 fi
-git commit -m "${COMMIT_MSG}"
 
-git branch -D "${TARGET_BRANCH}" >/dev/null 2>&1 || true
-git subtree split --prefix="${BUILD_DIR}" -b "${TARGET_BRANCH}"
-git push -f "${REMOTE}" "${TARGET_BRANCH}"
+(
+  cd "${WORKTREE_DIR}"
+  # Sync build output into the worktree root
+  rsync -a --delete --exclude '.git' "${REPO_ROOT}/${BUILD_DIR}/" ./
 
-git checkout "${CURRENT_BRANCH}"
-git branch -D "${WORK_BRANCH}" >/dev/null 2>&1 || true
-git branch -D "${TARGET_BRANCH}" >/dev/null 2>&1 || true
+  git add -A
+  COMMIT_MSG="Deploy frontend (${env_name}) $(date --iso-8601=seconds)"
+  if [[ $# -gt 0 ]]; then
+    COMMIT_MSG="$*"
+  fi
+  if git diff --cached --quiet; then
+    echo "No changes to deploy." >&2
+    exit 0
+  fi
+  git commit -m "${COMMIT_MSG}"
+  git push "${REMOTE}" "${TARGET_BRANCH}"
+)
