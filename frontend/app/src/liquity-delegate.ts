@@ -1,4 +1,3 @@
-import { KNOWN_DELEGATES_URL } from "@/src/env";
 import { useQuery } from "@tanstack/react-query";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useMemo } from "react";
@@ -22,16 +21,24 @@ const KnownDelegatesSchema = v.array(
 
 export type KnownDelegates = InferOutput<typeof KnownDelegatesSchema>;
 
+const HARDCODED_DELEGATES: KnownDelegates = [{
+  name: "Trove Zero",
+  url: "https://trovezero.xyz/",
+  strategies: [
+    {
+      name: "",
+      address: "0xe707784292289be3aa0fb6f9d33d420291f98695",
+      branches: ["ETH", "wstETH", "rETH"],
+      hide: false,
+    },
+  ],
+}];
+
 export function useKnownDelegates(): UseQueryResult<KnownDelegates | null> {
   return useQuery({
     queryKey: ["knownDelegates"],
-    queryFn: async () => {
-      if (!KNOWN_DELEGATES_URL) return null;
-
-      const response = await fetch(KNOWN_DELEGATES_URL);
-      const data = await response.json();
-      return v.parse(KnownDelegatesSchema, data);
-    },
+    queryFn: async () => HARDCODED_DELEGATES,
+    initialData: HARDCODED_DELEGATES,
   });
 }
 
