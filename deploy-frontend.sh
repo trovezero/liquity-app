@@ -77,6 +77,15 @@ fi
   # Sync build output into the worktree root
   rsync -a --delete --exclude '.git' "${REPO_ROOT}/${BUILD_DIR}/" ./
 
+  # Set correct CNAME per environment
+  if [[ -f "CNAME" ]]; then
+    cname_value="app.trovezero.xyz"
+    if [[ "${env_name}" == "staging" ]]; then
+      cname_value="app-staging.trovezero.xyz"
+    fi
+    echo "${cname_value}" > CNAME
+  fi
+
   git add -A
   COMMIT_MSG="Deploy frontend (${env_name}) $(date --iso-8601=seconds)"
   if [[ $# -gt 0 ]]; then
