@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002Fborrow\u002F[collateral]","\u002Fearn\u002F[pool]","\u002Fearn\u002F[pool]\u002F[action]","\u002Fmultiply\u002F[collateral]","\u002Fstake\u002F[action]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()
